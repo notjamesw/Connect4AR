@@ -81,7 +81,7 @@ def render_board(board: Connect4, width, height):
             if board.board[r, c] == 1:
                 cv2.circle(img, (cx, cy), radius - 4, (0, 0, 255), -1)
             elif board.board[r, c] == 2:
-                cv2.circle(img, (cx, cy), radius - 4, (0, 255, 0), -1)
+                cv2.circle(img, (cx, cy), radius - 4, (255, 0, 0), -1)
     return img
 
 
@@ -92,9 +92,18 @@ def board_point_to_col(x, width, cols=7):
 
 
 def main():
+    res = 1080
+    if(res == 1080):
+        screen_w, screen_h = 1920, 1080
+        board_w, board_h = 840, 720
+    else:
+        screen_w, screen_h = 1280, 720
+        board_w, board_h = 700, 600
+
     cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, screen_w)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, screen_h)
+
     if not cap.isOpened():
         print("Could not open webcam.")
         return
@@ -106,11 +115,10 @@ def main():
     falling = []
 
     # Board area parameters
-    board_w, board_h = 700, 500
-    board_x, board_y = 300, 200  # top-left corner position in screen coordinates
+    board_x, board_y = int(screen_w / 2 - board_w / 2), int(screen_h / 2 - board_h / 3)
 
     with mp_hands.Hands(
-        min_detection_confidence=0.6,
+        min_detection_confidence=0.7,
         min_tracking_confidence=0.5,
         max_num_hands=1
     ) as hands:
@@ -165,28 +173,36 @@ def main():
                         if py < board_y:  # allow grabbing only near top
                             grabbed_chip = {
                                 "player": c4.current_player,
-                                "pos": np.array([px - board_x, 0], dtype=float)
+                                "pos": np.array([px - board_x, py], dtype=float)
                             }
                             last_grab_time = now
             else:
                 # Dragging
                 if pinch_detected and pinch_pos is not None:
                     px, py = pinch_pos
-                    grabbed_chip["pos"][0] = np.clip(px - board_x, 0, board_w)
+                    grabbed_chip["pos"][0] = px - board_x
+                    grabbed_chip["pos"][1] = np.clip(py, 0, board_y - 20)
+
                 else:
                     # Released
-                    col = board_point_to_col(grabbed_chip["pos"][0], board_w, c4.cols)
-                    success, row = c4.drop(col)
-                    if success:
-                        falling.append({
-                            "player": grabbed_chip["player"],
-                            "x": (col + 0.5) * (board_w / c4.cols),
-                            "y": 0,
-                            "target_y": (row + 0.5) * (board_h / c4.rows),
-                            "t": 0.0
-                        })
-                    grabbed_chip = None
-                    last_grab_time = now
+                    if(grabbed_chip["pos"][0] > 0 and grabbed_chip["pos"][0] < board_w and grabbed_chip["pos"][1] < board_y):
+                        print(board_x, board_x + board_w, grabbed_chip["pos"][0])
+                        col = board_point_to_col(grabbed_chip["pos"][0], board_w, c4.cols)
+                        success, row = c4.drop(col)
+                        if success:
+                            falling.append({
+                                "player": grabbed_chip["player"],
+                                "x": (col + 0.5) * (board_w / c4.cols),
+                                "y": 0,
+                                "target_y": (row + 0.5) * (board_h / c4.rows),
+                                "t": 0.0
+                            })
+                        grabbed_chip = None
+                        last_grab_time = now
+                    else:
+                        # Cancel grab if released outside board
+                        grabbed_chip = None
+                        last_grab_time = now
 
             # Animate falling chips
             for chip in falling:
@@ -202,17 +218,20 @@ def main():
             frame[board_y:board_y + board_h, board_x:board_x + board_w] = blended
 
             # Draw grabbed or falling chips
+            cell_w = board_w / c4.cols
+            cell_h = board_h / c4.rows
+            radius = int(min(cell_w, cell_h) * 0.30)
             if grabbed_chip is not None:
                 cx = int(grabbed_chip["pos"][0] + board_x)
-                cy = int(board_y - 40)
-                color = (0, 0, 255) if grabbed_chip["player"] == 1 else (0, 255, 0)
-                cv2.circle(frame, (cx, cy), 25, color, -1)
+                cy = int(grabbed_chip["pos"][1])
+                color = (0, 0, 255) if grabbed_chip["player"] == 1 else (255, 0, 0)
+                cv2.circle(frame, (cx, cy), radius, color, -1)
 
             for chip in falling:
                 cx = int(chip["x"] + board_x)
                 cy = int(chip["y"] + board_y)
-                color = (0, 0, 255) if chip["player"] == 1 else (0, 255, 0)
-                cv2.circle(frame, (cx, cy), 25, color, -1)
+                color = (0, 0, 255) if chip["player"] == 1 else (255, 0, 0)
+                cv2.circle(frame, (cx, cy), radius, color, -1)
 
             # Info text
             if c4.winner:
