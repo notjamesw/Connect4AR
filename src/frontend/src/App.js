@@ -19,22 +19,39 @@ function App() {
       remoteVideoRef.current.srcObject = event.streams[0];
     };
 
-    // 1️⃣ Get local video
+    // Get local video feed from browser
     const localStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 1920, height: 1080, frameRate: 25 },
+      video: { width: 1280, height: 720, frameRate: 25, resizeMode: "none" },
       audio: false
     });
 
+    // Adjust sender params for better quality
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
+    if (sender) {
+      const params = sender.getParameters();
+      if (!params.encodings) params.encodings = [{}];
+
+      params.encodings[0].scaleResolutionDownBy = 1; // no downscaling
+      params.encodings[0].maxBitrate = 5_000_000;    // allow up to 5 Mbps bitrate
+      
+      await sender.setParameters(params);
+      
+      console.log("Sender parameters:", params);
+      // Also inspect the video track itself
+      const settings = sender.track.getSettings();
+      console.log(`Track capture: ${settings.width}x${settings.height} @ ${settings.frameRate}fps`);
+    }
+
     if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
 
-    // 2️⃣ Add local tracks
+    // Add local tracks
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    // 3️⃣ Create offer **after tracks added**
+    // Create offer after tracks are added
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    // 4️⃣ Send offer to backend
+    // Send offer to backend
     const response = await fetch(`${BACKEND_URL}/offer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -42,7 +59,7 @@ function App() {
     });
     const answer = await response.json();
 
-    // 5️⃣ Set remote description
+    // Set remote description
     await pc.setRemoteDescription(answer);
   };
 

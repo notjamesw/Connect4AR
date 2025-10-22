@@ -4,6 +4,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack, R
 from aiortc.contrib.media import MediaBlackhole, MediaRecorder
 from av import VideoFrame
 from src.backend.game import Game
+import cv2
 import time
 
 app = FastAPI()
@@ -28,11 +29,18 @@ class OpenCVCaptureTrack(VideoStreamTrack):
 
     async def recv(self):
         # Capture frame from OpenCV and convert to VideoFrame
+        print("Receiving frame")
         frame = await self.track.recv()
         img = frame.to_ndarray(format="bgr24")
 
-        # processed_frame = img
-        processed_frame = self.game.process_frame(img, key=None)
+        # print("Frame size received:", frame.width, frame.height)
+
+        if(frame.width != 1280 or frame.height != 720):
+            # print("frame mismatch")
+            img = cv2.resize(img, (1280, 720))
+            processed_frame = self.game.process_frame(img, key=None)
+        else:
+            processed_frame = self.game.process_frame(img, key=None)
 
         new_frame = VideoFrame.from_ndarray(processed_frame, format="bgr24")
         new_frame.pts = frame.pts
