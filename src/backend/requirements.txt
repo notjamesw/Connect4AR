@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+aiortc
+av
+numpy
+mediapipe
+opencv-python
