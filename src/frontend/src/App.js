@@ -21,7 +21,7 @@ function App() {
 
     // Get local video feed from browser
     const localStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 1280, height: 720, frameRate: 25, resizeMode: "none" },
+      video: { width: 1280, height: 720, frameRate: {min: 20}, resizeMode: "none" },
       audio: false
     });
 
@@ -36,10 +36,10 @@ function App() {
       
       await sender.setParameters(params);
       
-      console.log("Sender parameters:", params);
+      // console.log("Sender parameters:", params);
       // Also inspect the video track itself
-      const settings = sender.track.getSettings();
-      console.log(`Track capture: ${settings.width}x${settings.height} @ ${settings.frameRate}fps`);
+      // const settings = sender.track.getSettings();
+      // console.log(`Track capture: ${settings.width}x${settings.height} @ ${settings.frameRate}fps`);
     }
 
     if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
@@ -88,6 +88,30 @@ function App() {
     }
   };
 
+  const resetGame = async () => {
+    try {
+      await fetch(`${BACKEND_URL}/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+    } catch (err) {
+      console.warn("Backend reset call failed:", err);
+    }
+  };
+  
+  const toggleTracking = async () => {
+    try{
+      await fetch(`${BACKEND_URL}/toggle_tracking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+    } catch (err) {
+      console.warn("Backend toggle_hands call failed:", err);
+    }
+  };
+
     return (
     <div style={{ textAlign: "center", padding: "2rem" }}>
       <h1>Connect4 AR Demo</h1>
@@ -108,7 +132,7 @@ function App() {
         {!streaming ? (
           <button onClick={startGame}>Start Game</button>
         ) : (
-          <button onClick={stopGame}>Stop Game</button>
+          <><button onClick={stopGame}>Stop Game</button><button onClick={resetGame}>Reset</button><button onClick={toggleTracking}>Toggle Tracking Markers</button></>
         )}
       </div>
     </div>

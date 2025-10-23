@@ -116,6 +116,15 @@ class Game:
         cell_w = width / cols
         return max(0, min(cols - 1, int(x // cell_w)))
 
+    def reset(self):
+        self.connect4.reset()
+        self.falling.clear()
+        self.grabbed_chip = None
+        self.pinch_history.clear()
+        self.last_grab_time = 0
+
+    def toggle_hands(self):
+        self.show_hands = not self.show_hands
 
     def process_frame(self, frame, key):
         # print("DEBUG: process_frame called")
@@ -255,12 +264,6 @@ class Game:
                 cv2.circle(frame, (int(pinch_pos[0]), int(pinch_pos[1])), 10, (0, 255, 255), -1)
 
         cv2.putText(frame, msg, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-        
-        if key == "r":
-            self.connect4.reset()
-            self.falling.clear()
-        elif key == "s":
-            self.show_hands = not self.show_hands
         
         # print("DEBUG: process_frame completed")
         return frame

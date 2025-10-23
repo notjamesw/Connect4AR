@@ -2,20 +2,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack, RTCConfiguration, RTCIceServer, RTCDataChannel
 from aiortc.contrib.media import MediaBlackhole, MediaRecorder
+from contextlib import asynccontextmanager
 from av import VideoFrame
 from src.backend.game import Game
 import cv2
 import time
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class OpenCVCaptureTrack(VideoStreamTrack):
     def __init__(self, track, res):
@@ -29,7 +20,7 @@ class OpenCVCaptureTrack(VideoStreamTrack):
 
     async def recv(self):
         # Capture frame from OpenCV and convert to VideoFrame
-        print("Receiving frame")
+        # print("Receiving frame")
         frame = await self.track.recv()
         img = frame.to_ndarray(format="bgr24")
 
@@ -47,12 +38,30 @@ class OpenCVCaptureTrack(VideoStreamTrack):
         new_frame.time_base = frame.time_base
         
         return new_frame
-    
+
 # WebRTC configuration with STUN server
 ICE_SERVERS = [RTCIceServer("stun:stun.l.google.com:19302")]
 CONFIG = RTCConfiguration(ICE_SERVERS)
 
 pcs = set()
+active_tracks: set[OpenCVCaptureTrack] = set()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    for pc in pcs:
+        await pc.close()
+    pcs.clear()
+
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/offer")
 async def offer(request: Request):
@@ -74,6 +83,7 @@ async def offer(request: Request):
         print("Received track:", track.kind)
         if track.kind == "video":
             local_video = OpenCVCaptureTrack(track, res)
+            active_tracks.add(local_video)
             pc.addTrack(local_video)
         else:
             print("Received unsupported track:", track.kind)
@@ -97,3 +107,17 @@ async def stop():
         await pc.close()
     pcs.clear()
     return {"status": "stopped"}
+
+@app.post("/reset")
+async def reset(request: Request):
+    params = await request.json()
+    for track in active_tracks:
+        track.game.reset()
+    return {"status": "reset"}
+
+@app.post("/toggle_tracking")
+async def toggle_tracking(request: Request):
+    params = await request.json()
+    for track in active_tracks:
+        track.game.toggle_hands()
+    return {"status": "toggled"}
