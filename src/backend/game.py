@@ -236,7 +236,7 @@ class Game:
 
         # Info text
         if self.connect4.winner:
-            msg = f"Player {self.connect4.winner} wins! Press R to reset."
+            msg = f"Player {self.connect4.winner} wins! Click \"Reset\" to reset."
         else:
             msg = f"Player {self.connect4.current_player}'s turn"
             # Draw grabbed or falling chips
