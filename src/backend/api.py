@@ -48,6 +48,9 @@ class OpenCVCaptureTrack(VideoStreamTrack):
 # WebRTC configuration with ICE servers
 ICE_SERVERS = [
     RTCIceServer(urls="stun:stun.l.google.com:19302"),
+    RTCIceServer(urls="turn:34.145.38.148:3478",
+                 username="james",
+                 credential="9959"),
 ]
 CONFIG = RTCConfiguration(ICE_SERVERS)
 
