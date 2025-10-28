@@ -4,4 +4,6 @@ aiortc
 av
 numpy
 mediapipe
-opencv-python
+opencv-python-headless
+python-dotenv
+httpx

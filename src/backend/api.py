@@ -4,9 +4,15 @@ from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack, R
 from aiortc.contrib.media import MediaBlackhole, MediaRecorder
 from contextlib import asynccontextmanager
 from av import VideoFrame
-from src.backend.game import Game
+from game import Game
 import cv2
 import time
+# import httpx
+# import os
+# from dotenv import load_dotenv
+# load_dotenv()
+
+# OPEN_RELAY_API_KEY = os.getenv("OPEN_RELAY_API_KEY")
 
 class OpenCVCaptureTrack(VideoStreamTrack):
     def __init__(self, track, res):
@@ -39,8 +45,10 @@ class OpenCVCaptureTrack(VideoStreamTrack):
         
         return new_frame
 
-# WebRTC configuration with STUN server
-ICE_SERVERS = [RTCIceServer("stun:stun.l.google.com:19302")]
+# WebRTC configuration with ICE servers
+ICE_SERVERS = [
+    RTCIceServer(urls="stun:stun.l.google.com:19302"),
+]
 CONFIG = RTCConfiguration(ICE_SERVERS)
 
 pcs = set()
@@ -63,16 +71,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.post("/offer")
 async def offer(request: Request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
     res = params.get("resolution")
+    print("Received offer")
 
     # print("Received offer SDP lines:")
     # for line in offer.sdp.splitlines():
     #     print(line)
 
+    # # Fetch ICE servers dynamically
+    # async with httpx.AsyncClient() as client:
+    #     ice_resp = await client.get(f"https://connect4ar.metered.live/api/v1/turn/credentials?apiKey={OPEN_RELAY_API_KEY}")
+    #     ice_resp.raise_for_status()
+    #     ice_config = ice_resp.json()
+    
+    # # Build RTCConfiguration from Open Relay response and add Google's STUN server
+    # ice_servers = [RTCIceServer(**s) for s in ice_config]
+    # ice_servers.append(RTCIceServer(urls="stun:stun.l.google.com:19302"))
+
+    # config = RTCConfiguration(ice_servers)
+
+    # pc = RTCPeerConnection(config)
     pc = RTCPeerConnection(CONFIG)
     pcs.add(pc)
 
@@ -121,3 +144,7 @@ async def toggle_tracking(request: Request):
     for track in active_tracks:
         track.game.toggle_hands()
     return {"status": "toggled"}
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "FastAPI backend is running!"}
