@@ -12,7 +12,8 @@ There is a simple React app in the [frontend folder](https://github.com/notjames
 - **Gesture Recognition**: Custom pinch detection algorithm with temporal 5-frame smoothing
 - **Game Logic**: Complete Connect 4 implementation with win condition validation
 - **AR Overlay Rendering**: OpenCV-based game board and chip rendering on live video
-- **Low Latency**: Optimized for <100ms end-to-end latency at 720p/1080p, with dynamic scaling when client sends lower bitrates.
+- **Low Latency**: Optimized for <100ms end-to-end latency at 720p/1080p
+- **Adaptive Resolution Handling**: Automatically scales incoming frames to 1280×720 using OpenCV when the browser sends lower resolutions during initial connection or bandwidth fluctuations
 
 ## 🏗️ Architecture
 
