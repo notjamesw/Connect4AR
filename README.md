@@ -268,7 +268,7 @@ MIT License - see LICENSE file for details
 ## 👤 Author
 
 James Wen
-- GitHub: [@jameswen10](https://github.com/jameswen10)
+- GitHub: [@notjamesw](https://github.com/notjamesw)
 
 ## 🙏 Acknowledgments
 
