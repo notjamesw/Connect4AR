@@ -9,7 +9,7 @@
 # https://github.com/docker/awesome-compose
 services:
   backend:
-    image: connect4ar-backend:latest
+    image: connect4ar-backend:azure2
     build: .
     env_file:
       - .env
