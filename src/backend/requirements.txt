@@ -3,7 +3,7 @@ uvicorn
 aiortc
 av
 numpy
-mediapipe
+mediapipe>=0.10.0
 opencv-python-headless
 python-dotenv
 httpx

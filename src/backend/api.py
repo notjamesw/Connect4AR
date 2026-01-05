@@ -86,6 +86,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.options("/offer")
+async def offer_options():
+    return {}
+
 @app.post("/offer")
 async def offer(request: Request):
     params = await request.json()
