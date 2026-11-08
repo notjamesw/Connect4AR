@@ -74,6 +74,8 @@ class Game:
         self.mp_drawing = mp.solutions.drawing_utils
 
         self.connect4 = Connect4()
+        self._board_overlay = None
+        self._board_overlay_key = None
 
         self.grabbed_chip = None
         self.pinch_history = deque(maxlen=5)
@@ -83,6 +85,7 @@ class Game:
         self.board_x, self.board_y = int(self.screen_w / 2 - self.board_w / 2), int(self.screen_h / 2 - self.board_h / 3)
 
         self.hands = self.mp_hands.Hands(
+            model_complexity=0,
             min_detection_confidence=0.7,
             min_tracking_confidence=0.5,
             max_num_hands=1
@@ -110,6 +113,14 @@ class Game:
                     cv2.circle(img, (cx, cy), radius - 4, (0, 255, 255), -1)
         return img
 
+    def _get_board_overlay(self):
+        key = (self.board_w, self.board_h, self.connect4.board.tobytes())
+        if self._board_overlay is None or key != self._board_overlay_key:
+            self._board_overlay = self.render_board(
+                self.connect4, self.board_w, self.board_h
+            )
+            self._board_overlay_key = key
+        return self._board_overlay
 
     def board_point_to_col(self, x, width, cols=7):
         """Convert an x-coordinate to board column."""
@@ -132,7 +143,7 @@ class Game:
 
         frame = cv2.flip(frame, 1)
         # Crop or scale board overlay region
-        board_overlay = self.render_board(self.connect4, self.board_w, self.board_h)
+        board_overlay = self._get_board_overlay()
 
         # Process hand
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
